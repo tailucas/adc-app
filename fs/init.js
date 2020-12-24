@@ -10,23 +10,23 @@ let mqtt_topic = Cfg.get('app.mqtt_pub_topic');
 let active_pub_interval_s = Cfg.get('app.active_pub_interval_s');
 let now = Timer.now();
 
-let adc_pin1 = Cfg.get('app.input.1.pin');
-let adc_pin2 = Cfg.get('app.input.2.pin');
-let adc_pin3 = Cfg.get('app.input.3.pin');
+let adc_pin1 = Cfg.get('app.input_1.pin');
+let adc_pin2 = Cfg.get('app.input_2.pin');
+let adc_pin3 = Cfg.get('app.input_3.pin');
 
-let input_label1 = Cfg.get('app.input.1.label');
-let input_label2 = Cfg.get('app.input.2.label');
-let input_label3 = Cfg.get('app.input.3.label');
+let input_label1 = Cfg.get('app.input_1.label');
+let input_label2 = Cfg.get('app.input_2.label');
+let input_label3 = Cfg.get('app.input_3.label');
 
-let adc_pin1_normal_value = Cfg.get('app.input.1.normal_value');
+let adc_pin1_normal_value = Cfg.get('app.input_1.normal_value');
 let adc_pin1_normal_value_high = adc_pin1_normal_value * 1.1;
 let adc_pin1_normal_value_low = adc_pin1_normal_value * 0.9;
 
-let adc_pin2_normal_value = Cfg.get('app.input.2.normal_value');
+let adc_pin2_normal_value = Cfg.get('app.input_2.normal_value');
 let adc_pin2_normal_value_high = adc_pin2_normal_value * 1.1;
 let adc_pin2_normal_value_low = adc_pin2_normal_value * 0.9;
 
-let adc_pin3_normal_value = Cfg.get('app.input.3.normal_value');
+let adc_pin3_normal_value = Cfg.get('app.input_3.normal_value');
 let adc_pin3_normal_value_high = adc_pin3_normal_value * 1.1;
 let adc_pin3_normal_value_low = adc_pin3_normal_value * 0.9;
 
