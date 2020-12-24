@@ -26,7 +26,22 @@ config_schema:
   - ["mqtt.server", "192.168.0.5"]
   - ["mqtt.enable", true]
   - ["rpc.mqtt.enable", false]  # Disable remote control over MQTT
-  - ["i2c.enable", true]
+  #- ["i2c.enable", true]
+  - ["app.mqtt_pub_topic", "s", "sensor/garage", {title: "MQTT topic for updates"}]
+  - ["app.debug", "b", false, {title: "Debug mode with additional console output"}]
+  - ["app.sample_interval_ms", "i", 250, {title: "Sample rate"}]
+  - ["app.trigger_dedupes", "i", 4, {title: "Consecutive active values before trigger sent"}]
+  - ["app.active_pub_interval_s", "i", 1, {title: "Publish rate when active"}]
+  - ["app.heartbeat_pub_interval_s", "i", 30, {title: "Publish rate when idle"}]
+  - ["app.input.1.pin", "i", 34, {title: "Analog input pin"}]
+  - ["app.input.1.normal_value", "i", 0, {title: "Normal value"}]
+  - ["app.input.1.label", "i", 0, {title: "Garage Motion Detector"}]
+  - ["app.input.2.pin", "i", 35, {title: "Analog input pin"}]
+  - ["app.input.2.normal_value", "i", 0, {title: "Normal value"}]
+  - ["app.input.2.label", "i", 0, {title: "Garage Back Door"}]
+  - ["app.input.3.pin", "i", 36, {title: "Analog input pin"}]
+  - ["app.input.3.normal_value", "i", 0, {title: "Normal value"}]
+  - ["app.input.3.label", "i", 0, {title: "Garage Main Door"}]
 
 # These settings get compiled into the C structure, and can be accessed
 # from the C code this way:
@@ -55,6 +70,7 @@ libs:
   - origin: https://github.com/mongoose-os-libs/rpc-service-config
   - origin: https://github.com/mongoose-os-libs/rpc-service-fs
   - origin: https://github.com/mongoose-os-libs/rpc-uart
+  - origin: https://github.com/mongoose-os-libs/rpc-service-ota
   - origin: https://github.com/mongoose-os-libs/ota-http-server
   - origin: https://github.com/mongoose-os-libs/dash
 

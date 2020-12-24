@@ -5,47 +5,111 @@ load('api_mqtt.js');
 load('api_sys.js');
 load('api_timer.js');
 
-print('DEBUG: HELLO');
-if (MQTT.isConnected()) {
-    print('MQTT connected!');
-} else {
-    print('MQTT NOT connected!');
-}
+let debug = Cfg.get('app.debug');
+let mqtt_topic = Cfg.get('app.mqtt_pub_topic');
+let active_pub_interval_s = Cfg.get('app.active_pub_interval_s');
+let now = Timer.now();
 
-let debug = true;
+let adc_pin1 = Cfg.get('app.input.1.pin');
+let adc_pin2 = Cfg.get('app.input.2.pin');
+let adc_pin3 = Cfg.get('app.input.3.pin');
 
-// let mqtt_topic = 'meter/electricity/'+Cfg.get('device.id');
-let mqtt_topic = 'test';
+let input_label1 = Cfg.get('app.input.1.label');
+let input_label2 = Cfg.get('app.input.2.label');
+let input_label3 = Cfg.get('app.input.3.label');
 
-let sample_value = 0;
+let adc_pin1_normal_value = Cfg.get('app.input.1.normal_value');
+let adc_pin1_normal_value_high = adc_pin1_normal_value * 1.1;
+let adc_pin1_normal_value_low = adc_pin1_normal_value * 0.9;
 
-let pubMsg = function() {
-  let message = JSON.stringify({
-    uptime: Sys.uptime(),
-    last_sample_value: sample_value,
-  });
-  let ok = MQTT.pub(mqtt_topic, message, 1);
-  if (debug) {
-    if (!ok) {
-      print('ERROR', mqtt_topic, '<-', message);
-    } else {
-      print(mqtt_topic, '<-', message);
+let adc_pin2_normal_value = Cfg.get('app.input.2.normal_value');
+let adc_pin2_normal_value_high = adc_pin2_normal_value * 1.1;
+let adc_pin2_normal_value_low = adc_pin2_normal_value * 0.9;
+
+let adc_pin3_normal_value = Cfg.get('app.input.3.normal_value');
+let adc_pin3_normal_value_high = adc_pin3_normal_value * 1.1;
+let adc_pin3_normal_value_low = adc_pin3_normal_value * 0.9;
+
+let adc_pin1_abnormal_count = 0;
+let adc_pin2_abnormal_count = 0;
+let adc_pin3_abnormal_count = 0;
+
+let sample_value1 = 0;
+let sample_value2 = 0;
+let sample_value3 = 0;
+
+let pubMsg = function(input_active) {
+  now = Timer.now();
+  if (input_active && now - last_posted >= active_pub_interval_s) {
+    let message = JSON.stringify({
+      uptime: Sys.uptime(),
+      timestamp: now,
+      input_1: {label: input_label1, sample_value: sample_value1},
+      input_2: {label: input_label2, sample_value: sample_value2},
+      input_3: {label: input_label3, sample_value: sample_value3}
+    });
+    let ok = MQTT.pub(mqtt_topic, message, 1);
+    if (debug) {
+      if (!ok) {
+        print('ERROR', mqtt_topic, '<-', message);
+      } else {
+        print(mqtt_topic, '<-', message);
+      }
     }
+    last_posted = now;
   }
 };
 
-let adc_pin = 34;
-let sample_rate = 2000;
+let trigger_dedupes = Cfg.get('app.trigger_dedupes');
+let sample_interval_ms = Cfg.get('app.sample_interval_ms');
 if (debug) {
-  sample_rate = 2000;
+  sample_interval_ms = 2000;
 }
 
-ADC.enable(adc_pin);
-Timer.set(sample_rate, true /* repeat */, function() {
+ADC.enable(adc_pin1);
+ADC.enable(adc_pin2);
+ADC.enable(adc_pin3);
+
+let input_active = false;
+Timer.set(sample_interval_ms, true /* repeat */, function() {
     // "low" is 4096, "high" is 0
-    sample_value = ADC.read(adc_pin);
-    if (debug) {
-        print('Pin', adc_pin, 'sampled', sample_value);
+    sample_value1 = ADC.read(adc_pin1);
+    sample_value2 = ADC.read(adc_pin2);
+    sample_value3 = ADC.read(adc_pin3);
+    input_active = false;
+    if (sample_value1 < adc_pin1_normal_value_low && sample_value1 > adc_pin1_normal_value_high) {
+      adc_pin1_abnormal_count += 1;
+    } else {
+      adc_pin1_abnormal_count = 0;
     }
-    pubMsg();
+    if (adc_pin1_abnormal_count > trigger_dedupes) {
+      input_active = true;
+    }
+    if (sample_value2 < adc_pin2_normal_value_low && sample_value2 > adc_pin2_normal_value_high) {
+      adc_pin2_abnormal_count += 1;
+    } else {
+      adc_pin2_abnormal_count = 0;
+    }
+    if (adc_pin2_abnormal_count > trigger_dedupes) {
+      input_active = true;
+    }
+    if (sample_value3 < adc_pin3_normal_value_low && sample_value3 > adc_pin3_normal_value_high) {
+      adc_pin3_abnormal_count += 1;
+    } else {
+      adc_pin3_abnormal_count = 0;
+    }
+    if (adc_pin3_abnormal_count > trigger_dedupes) {
+      input_active = true;
+    }
+    if (debug) {
+      print('Pin', adc_pin1, 'sampled', sample_value1, 'abnormal count', adc_pin1_abnormal_count);
+      print('Pin', adc_pin2, 'sampled', sample_value2, 'abnormal count', adc_pin2_abnormal_count);
+      print('Pin', adc_pin3, 'sampled', sample_value3, 'abnormal count', adc_pin3_abnormal_count);
+    }
+    pubMsg(input_active);
+}, null);
+
+let heartbeat_interval = Cfg.get('app.heartbeat_pub_interval_s');
+Timer.set(heartbeat_interval * 1000, true /* repeat */, function() {
+  pubMsg(true);
 }, null);
