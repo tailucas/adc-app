@@ -9,6 +9,7 @@ let debug = Cfg.get('app.debug');
 let mqtt_topic = Cfg.get('app.mqtt_pub_topic');
 let active_pub_interval_s = Cfg.get('app.active_pub_interval_s');
 let now = Timer.now();
+let last_posted = now;
 
 let adc_pin1 = Cfg.get('app.input_1.pin');
 let adc_pin2 = Cfg.get('app.input_2.pin');
