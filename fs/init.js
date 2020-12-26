@@ -21,6 +21,10 @@ let input1_active = false;
 let input2_active = false;
 let input3_active = false;
 
+let input1_value = -1;
+let input2_value = -1;
+let input3_value = -1;
+
 let mqtt_topic = Cfg.get('app.mqtt_pub_topic');
 let active_pub_interval_s = Cfg.get('app.active_pub_interval_s');
 print('Publication interval=', active_pub_interval_s, 's');
@@ -35,9 +39,9 @@ let pubMsg = function(input_active) {
       uptime: Sys.uptime(),
       timestamp: now,
       input_location: input_location,
-      input_1: {input_label: input1_label, active: input1_active},
-      input_2: {input_label: input2_label, active: input2_active},
-      input_3: {input_label: input3_label, active: input3_active}
+      input_1: {input_label: input1_label, active: input1_active, sample_value: input1_value},
+      input_2: {input_label: input2_label, active: input2_active, sample_value: input2_value},
+      input_3: {input_label: input3_label, active: input3_active, sample_value: input3_value}
     });
     let ok = MQTT.pub(mqtt_topic, message, 1);
     if (debug) {
@@ -92,7 +96,6 @@ ADC.enable(adc_pin2);
 ADC.enable(adc_pin3);
 
 let input_active = false;
-let sample_value = 0;
 let adc_pin1_abnormal_count = 0;
 let adc_pin2_abnormal_count = 0;
 let adc_pin3_abnormal_count = 0;
@@ -101,32 +104,32 @@ Timer.set(sample_interval_ms, true /* repeat */, function() {
     input1_active = false;
     input2_active = false;
     input3_active = false;
-    sample_value = ADC.read(adc_pin1);
-    adc_pin1_abnormal_count = testSample(sample_value, adc_pin1_normal_value, adc_pin1_abnormal_count);
+    input1_value = ADC.read(adc_pin1);
+    adc_pin1_abnormal_count = testSample(input1_value, adc_pin1_normal_value, adc_pin1_abnormal_count);
     if (adc_pin1_abnormal_count > trigger_dedupes) {
       input1_active = true;
       input_active = true;
     }
     if (debug) {
-      print('Pin', adc_pin1, 'sampled', sample_value, 'abnormal count', adc_pin1_abnormal_count, 'active?', input1_active);
+      print('Pin', adc_pin1, 'sampled', input1_value, 'abnormal count', adc_pin1_abnormal_count, 'active?', input1_active);
     }
-    sample_value = ADC.read(adc_pin2);
-    adc_pin2_abnormal_count = testSample(sample_value, adc_pin2_normal_value, adc_pin2_abnormal_count);
+    input2_value = ADC.read(adc_pin2);
+    adc_pin2_abnormal_count = testSample(input2_value, adc_pin2_normal_value, adc_pin2_abnormal_count);
     if (adc_pin2_abnormal_count > trigger_dedupes) {
       input2_active = true;
       input_active = true;
     }
     if (debug) {
-      print('Pin', adc_pin2, 'sampled', sample_value, 'abnormal count', adc_pin2_abnormal_count, 'active?', input2_active);
+      print('Pin', adc_pin2, 'sampled', input2_value, 'abnormal count', adc_pin2_abnormal_count, 'active?', input2_active);
     }
-    sample_value = ADC.read(adc_pin3);
-    adc_pin3_abnormal_count = testSample(sample_value, adc_pin3_normal_value, adc_pin3_abnormal_count);
+    input3_value = ADC.read(adc_pin3);
+    adc_pin3_abnormal_count = testSample(input3_value, adc_pin3_normal_value, adc_pin3_abnormal_count);
     if (adc_pin3_abnormal_count > trigger_dedupes) {
       input3_active = true;
       input_active = true;
     }
     if (debug) {
-      print('Pin', adc_pin3, 'sampled', sample_value, 'abnormal count', adc_pin3_abnormal_count, 'active?', input3_active);
+      print('Pin', adc_pin3, 'sampled', input3_value, 'abnormal count', adc_pin3_abnormal_count, 'active?', input3_active);
     }
     if (debug) {
       print('Any input is active?', input_active);
