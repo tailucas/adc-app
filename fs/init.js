@@ -25,7 +25,8 @@ let input1_value = -1;
 let input2_value = -1;
 let input3_value = -1;
 
-let mqtt_topic = Cfg.get('app.mqtt_pub_topic');
+let device_id = Cfg.get('device.id');
+let mqtt_topic = Cfg.get('app.mqtt_pub_topic')+'/'+device_id;
 let active_pub_interval_s = Cfg.get('app.active_pub_interval_s');
 print('Publication interval=', active_pub_interval_s, 's');
 let input_location = Cfg.get('app.input_location');
@@ -38,6 +39,7 @@ let pubMsg = function(input_active) {
     let message = JSON.stringify({
       uptime: Sys.uptime(),
       timestamp: now,
+      device_id: device_id,
       input_location: input_location,
       input_1: {input_label: input1_label, active: input1_active, sample_value: input1_value},
       input_2: {input_label: input2_label, active: input2_active, sample_value: input2_value},
