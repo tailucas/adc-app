@@ -6,48 +6,38 @@ load('api_sys.js');
 load('api_timer.js');
 
 let debug = Cfg.get('app.debug');
+if (debug) {
+  print('DEBUG MODE ENABLED');
+}
+
+let input1_label = Cfg.get('app.input_1.label');
+print('Input 1 label=', input1_label);
+let input2_label = Cfg.get('app.input_2.label');
+print('Input 2 label=', input2_label);
+let input3_label = Cfg.get('app.input_3.label');
+print('Input 3 label=', input3_label);
+
+let input1_active = false;
+let input2_active = false;
+let input3_active = false;
+
 let mqtt_topic = Cfg.get('app.mqtt_pub_topic');
 let active_pub_interval_s = Cfg.get('app.active_pub_interval_s');
+print('Publication interval=', active_pub_interval_s, 's');
+let input_location = Cfg.get('app.input_location');
+print('Physical device location=', input_location);
 let now = Timer.now();
 let last_posted = now;
-
-let adc_pin1 = Cfg.get('app.input_1.pin');
-let adc_pin2 = Cfg.get('app.input_2.pin');
-let adc_pin3 = Cfg.get('app.input_3.pin');
-
-let input_label1 = Cfg.get('app.input_1.label');
-let input_label2 = Cfg.get('app.input_2.label');
-let input_label3 = Cfg.get('app.input_3.label');
-
-let adc_pin1_normal_value = Cfg.get('app.input_1.normal_value');
-let adc_pin1_normal_value_high = adc_pin1_normal_value * 1.1;
-let adc_pin1_normal_value_low = adc_pin1_normal_value * 0.9;
-
-let adc_pin2_normal_value = Cfg.get('app.input_2.normal_value');
-let adc_pin2_normal_value_high = adc_pin2_normal_value * 1.1;
-let adc_pin2_normal_value_low = adc_pin2_normal_value * 0.9;
-
-let adc_pin3_normal_value = Cfg.get('app.input_3.normal_value');
-let adc_pin3_normal_value_high = adc_pin3_normal_value * 1.1;
-let adc_pin3_normal_value_low = adc_pin3_normal_value * 0.9;
-
-let adc_pin1_abnormal_count = 0;
-let adc_pin2_abnormal_count = 0;
-let adc_pin3_abnormal_count = 0;
-
-let sample_value1 = 0;
-let sample_value2 = 0;
-let sample_value3 = 0;
-
 let pubMsg = function(input_active) {
   now = Timer.now();
   if (input_active && now - last_posted >= active_pub_interval_s) {
     let message = JSON.stringify({
       uptime: Sys.uptime(),
       timestamp: now,
-      input_1: {label: input_label1, sample_value: sample_value1},
-      input_2: {label: input_label2, sample_value: sample_value2},
-      input_3: {label: input_label3, sample_value: sample_value3}
+      input_location: input_location,
+      input_1: {input_label: input1_label, active: input1_active},
+      input_2: {input_label: input2_label, active: input2_active},
+      input_3: {input_label: input3_label, active: input3_active}
     });
     let ok = MQTT.pub(mqtt_topic, message, 1);
     if (debug) {
@@ -62,55 +52,93 @@ let pubMsg = function(input_active) {
 };
 
 let trigger_dedupes = Cfg.get('app.trigger_dedupes');
+print('Trigger dedupes=', trigger_dedupes);
 let sample_interval_ms = Cfg.get('app.sample_interval_ms');
 if (debug) {
   sample_interval_ms = 2000;
 }
+print('Sample interval=', sample_interval_ms, 'ms');
+let sample_value_max = 4095;
+let sample_value_tolerance = sample_value_max / Cfg.get('app.normal_value_tolerance_percent');
+print('Normal value tolerance=', sample_value_tolerance);
+let sample_normal = false;
+let testSample = function(sample_value, normal_value, trigger_count) {
+  if (sample_value < normal_value - sample_value_tolerance || sample_value > normal_value + sample_value_tolerance) {
+    sample_normal = false;
+  } else {
+    sample_normal = true;
+  }
+  if (sample_normal) {
+    trigger_count = 0;
+  } else {
+    trigger_count += 1;
+  }
+  return trigger_count;
+};
+
+let adc_pin1 = Cfg.get('app.input_1.pin');
+let adc_pin2 = Cfg.get('app.input_2.pin');
+let adc_pin3 = Cfg.get('app.input_3.pin');
+
+let adc_pin1_normal_value = Cfg.get('app.input_1.normal_value');
+print('Pin', adc_pin1, 'normal value=', adc_pin1_normal_value);
+let adc_pin2_normal_value = Cfg.get('app.input_2.normal_value');
+print('Pin', adc_pin2, 'normal value=', adc_pin2_normal_value);
+let adc_pin3_normal_value = Cfg.get('app.input_3.normal_value');
+print('Pin', adc_pin3, 'normal value=', adc_pin3_normal_value);
 
 ADC.enable(adc_pin1);
 ADC.enable(adc_pin2);
 ADC.enable(adc_pin3);
 
 let input_active = false;
+let sample_value = 0;
+let adc_pin1_abnormal_count = 0;
+let adc_pin2_abnormal_count = 0;
+let adc_pin3_abnormal_count = 0;
 Timer.set(sample_interval_ms, true /* repeat */, function() {
-    // "low" is 4096, "high" is 0
-    sample_value1 = ADC.read(adc_pin1);
-    sample_value2 = ADC.read(adc_pin2);
-    sample_value3 = ADC.read(adc_pin3);
     input_active = false;
-    if (sample_value1 < adc_pin1_normal_value_low && sample_value1 > adc_pin1_normal_value_high) {
-      adc_pin1_abnormal_count += 1;
-    } else {
-      adc_pin1_abnormal_count = 0;
-    }
+    input1_active = false;
+    input2_active = false;
+    input3_active = false;
+    sample_value = ADC.read(adc_pin1);
+    adc_pin1_abnormal_count = testSample(sample_value, adc_pin1_normal_value, adc_pin1_abnormal_count);
     if (adc_pin1_abnormal_count > trigger_dedupes) {
-      input_active = true;
-    }
-    if (sample_value2 < adc_pin2_normal_value_low && sample_value2 > adc_pin2_normal_value_high) {
-      adc_pin2_abnormal_count += 1;
-    } else {
-      adc_pin2_abnormal_count = 0;
-    }
-    if (adc_pin2_abnormal_count > trigger_dedupes) {
-      input_active = true;
-    }
-    if (sample_value3 < adc_pin3_normal_value_low && sample_value3 > adc_pin3_normal_value_high) {
-      adc_pin3_abnormal_count += 1;
-    } else {
-      adc_pin3_abnormal_count = 0;
-    }
-    if (adc_pin3_abnormal_count > trigger_dedupes) {
+      input1_active = true;
       input_active = true;
     }
     if (debug) {
-      print('Pin', adc_pin1, 'sampled', sample_value1, 'abnormal count', adc_pin1_abnormal_count);
-      print('Pin', adc_pin2, 'sampled', sample_value2, 'abnormal count', adc_pin2_abnormal_count);
-      print('Pin', adc_pin3, 'sampled', sample_value3, 'abnormal count', adc_pin3_abnormal_count);
+      print('Pin', adc_pin1, 'sampled', sample_value, 'abnormal count', adc_pin1_abnormal_count, 'active?', input1_active);
+    }
+    sample_value = ADC.read(adc_pin2);
+    adc_pin2_abnormal_count = testSample(sample_value, adc_pin2_normal_value, adc_pin2_abnormal_count);
+    if (adc_pin2_abnormal_count > trigger_dedupes) {
+      input2_active = true;
+      input_active = true;
+    }
+    if (debug) {
+      print('Pin', adc_pin2, 'sampled', sample_value, 'abnormal count', adc_pin2_abnormal_count, 'active?', input2_active);
+    }
+    sample_value = ADC.read(adc_pin3);
+    adc_pin3_abnormal_count = testSample(sample_value, adc_pin3_normal_value, adc_pin3_abnormal_count);
+    if (adc_pin3_abnormal_count > trigger_dedupes) {
+      input3_active = true;
+      input_active = true;
+    }
+    if (debug) {
+      print('Pin', adc_pin3, 'sampled', sample_value, 'abnormal count', adc_pin3_abnormal_count, 'active?', input3_active);
+    }
+    if (debug) {
+      print('Any input is active?', input_active);
     }
     pubMsg(input_active);
 }, null);
 
-let heartbeat_interval = Cfg.get('app.heartbeat_pub_interval_s');
-Timer.set(heartbeat_interval * 1000, true /* repeat */, function() {
+let heartbeat_interval_s = Cfg.get('app.heartbeat_pub_interval_s');
+if (debug) {
+  heartbeat_interval_s = 5;
+}
+print('Hearbeat interval=', heartbeat_interval_s, 's');
+Timer.set(heartbeat_interval_s * 1000, true /* repeat */, function() {
   pubMsg(true);
 }, null);
