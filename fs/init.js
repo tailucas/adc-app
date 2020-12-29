@@ -31,6 +31,7 @@ let active_pub_interval_s = Cfg.get('app.active_pub_interval_s');
 print('Publication interval=', active_pub_interval_s, 's');
 let input_location = Cfg.get('app.input_location');
 print('Physical device location=', input_location);
+
 let now = Timer.now();
 let last_posted = now;
 let pubMsg = function(input_active) {
