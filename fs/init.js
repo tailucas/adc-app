@@ -17,6 +17,21 @@ print('Input 2 label=', input2_label);
 let input3_label = Cfg.get('app.input_3.label');
 print('Input 3 label=', input3_label);
 
+let adc_pin1 = Cfg.get('app.input_1.pin');
+let adc_pin2 = Cfg.get('app.input_2.pin');
+let adc_pin3 = Cfg.get('app.input_3.pin');
+
+ADC.enable(adc_pin1);
+ADC.enable(adc_pin2);
+ADC.enable(adc_pin3);
+
+let adc_pin1_normal_value = Cfg.get('app.input_1.normal_value');
+print('Pin', adc_pin1, 'normal value=', adc_pin1_normal_value);
+let adc_pin2_normal_value = Cfg.get('app.input_2.normal_value');
+print('Pin', adc_pin2, 'normal value=', adc_pin2_normal_value);
+let adc_pin3_normal_value = Cfg.get('app.input_3.normal_value');
+print('Pin', adc_pin3, 'normal value=', adc_pin3_normal_value);
+
 let input1_active = false;
 let input2_active = false;
 let input3_active = false;
@@ -42,9 +57,9 @@ let pubMsg = function(input_active) {
       timestamp: now,
       device_id: device_id,
       input_location: input_location,
-      input_1: {input_label: input1_label, active: input1_active, sample_value: input1_value},
-      input_2: {input_label: input2_label, active: input2_active, sample_value: input2_value},
-      input_3: {input_label: input3_label, active: input3_active, sample_value: input3_value}
+      input_1: {input_label: input1_label, active: input1_active, sample_value: input1_value, normal_value: adc_pin1_normal_value},
+      input_2: {input_label: input2_label, active: input2_active, sample_value: input2_value, normal_value: adc_pin2_normal_value},
+      input_3: {input_label: input3_label, active: input3_active, sample_value: input3_value, normal_value: adc_pin3_normal_value}
     });
     let ok = MQTT.pub(mqtt_topic, message, 1);
     if (debug) {
@@ -58,13 +73,6 @@ let pubMsg = function(input_active) {
   }
 };
 
-let trigger_dedupes = Cfg.get('app.trigger_dedupes');
-print('Trigger dedupes=', trigger_dedupes);
-let sample_interval_ms = Cfg.get('app.sample_interval_ms');
-if (debug) {
-  sample_interval_ms = 2000;
-}
-print('Sample interval=', sample_interval_ms, 'ms');
 let sample_value_max = 4095;
 let sample_value_tolerance = sample_value_max / Cfg.get('app.normal_value_tolerance_percent');
 print('Normal value tolerance=', sample_value_tolerance);
@@ -83,20 +91,13 @@ let testSample = function(sample_value, normal_value, trigger_count) {
   return trigger_count;
 };
 
-let adc_pin1 = Cfg.get('app.input_1.pin');
-let adc_pin2 = Cfg.get('app.input_2.pin');
-let adc_pin3 = Cfg.get('app.input_3.pin');
-
-let adc_pin1_normal_value = Cfg.get('app.input_1.normal_value');
-print('Pin', adc_pin1, 'normal value=', adc_pin1_normal_value);
-let adc_pin2_normal_value = Cfg.get('app.input_2.normal_value');
-print('Pin', adc_pin2, 'normal value=', adc_pin2_normal_value);
-let adc_pin3_normal_value = Cfg.get('app.input_3.normal_value');
-print('Pin', adc_pin3, 'normal value=', adc_pin3_normal_value);
-
-ADC.enable(adc_pin1);
-ADC.enable(adc_pin2);
-ADC.enable(adc_pin3);
+let sample_interval_ms = Cfg.get('app.sample_interval_ms');
+if (debug) {
+  sample_interval_ms = 2000;
+}
+print('Sample interval=', sample_interval_ms, 'ms');
+let trigger_dedupes = Cfg.get('app.trigger_dedupes');
+print('Trigger dedupes=', trigger_dedupes);
 
 let input_active = false;
 let adc_pin1_abnormal_count = 0;
@@ -104,14 +105,14 @@ let adc_pin2_abnormal_count = 0;
 let adc_pin3_abnormal_count = 0;
 Timer.set(sample_interval_ms, true /* repeat */, function() {
     input_active = false;
-    input1_active = false;
-    input2_active = false;
-    input3_active = false;
     input1_value = ADC.read(adc_pin1);
     adc_pin1_abnormal_count = testSample(input1_value, adc_pin1_normal_value, adc_pin1_abnormal_count);
     if (adc_pin1_abnormal_count > trigger_dedupes) {
       input1_active = true;
       input_active = true;
+    }
+    if (adc_pin1_abnormal_count === 0) {
+      input1_active = false;
     }
     if (debug) {
       print('Pin', adc_pin1, 'sampled', input1_value, 'abnormal count', adc_pin1_abnormal_count, 'active?', input1_active);
@@ -122,6 +123,9 @@ Timer.set(sample_interval_ms, true /* repeat */, function() {
       input2_active = true;
       input_active = true;
     }
+    if (adc_pin2_abnormal_count === 0) {
+      input2_active = false;
+    }
     if (debug) {
       print('Pin', adc_pin2, 'sampled', input2_value, 'abnormal count', adc_pin2_abnormal_count, 'active?', input2_active);
     }
@@ -130,6 +134,9 @@ Timer.set(sample_interval_ms, true /* repeat */, function() {
     if (adc_pin3_abnormal_count > trigger_dedupes) {
       input3_active = true;
       input_active = true;
+    }
+    if (adc_pin3_abnormal_count === 0) {
+      input3_active = false;
     }
     if (debug) {
       print('Pin', adc_pin3, 'sampled', input3_value, 'abnormal count', adc_pin3_abnormal_count, 'active?', input3_active);
