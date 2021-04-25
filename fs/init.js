@@ -115,6 +115,8 @@ Timer.set(sample_interval_ms, true /* repeat */, function() {
     if (adc_pin1_abnormal_count > trigger_dedupes) {
       input1_active = true;
       input_active = true;
+      // LED
+      GPIO.write(led_pin, 1);
     }
     if (adc_pin1_abnormal_count === 0) {
       input1_active = false;
@@ -127,6 +129,8 @@ Timer.set(sample_interval_ms, true /* repeat */, function() {
     if (adc_pin2_abnormal_count > trigger_dedupes) {
       input2_active = true;
       input_active = true;
+      // LED
+      GPIO.write(led_pin, 1);
     }
     if (adc_pin2_abnormal_count === 0) {
       input2_active = false;
@@ -139,6 +143,8 @@ Timer.set(sample_interval_ms, true /* repeat */, function() {
     if (adc_pin3_abnormal_count > trigger_dedupes) {
       input3_active = true;
       input_active = true;
+      // LED
+      GPIO.write(led_pin, 1);
     }
     if (adc_pin3_abnormal_count === 0) {
       input3_active = false;
@@ -148,10 +154,6 @@ Timer.set(sample_interval_ms, true /* repeat */, function() {
     }
     if (debug) {
       print('Any input is active?', input_active);
-    }
-    // update LED
-    if (input_active) {
-      GPIO.write(led_pin, 1);
     }
     pubMsg(input_active);
 }, null);
