@@ -10,6 +10,9 @@ if (debug) {
   print('DEBUG MODE ENABLED');
 }
 
+let led_pin = 2;
+GPIO.set_mode(led_pin, GPIO.MODE_OUTPUT);
+
 let input1_label = Cfg.get('app.input_1.label');
 print('Input 1 label=', input1_label);
 let input2_label = Cfg.get('app.input_2.label');
@@ -104,6 +107,8 @@ let adc_pin1_abnormal_count = 0;
 let adc_pin2_abnormal_count = 0;
 let adc_pin3_abnormal_count = 0;
 Timer.set(sample_interval_ms, true /* repeat */, function() {
+    // disable LED
+    GPIO.write(led_pin, 0);
     input_active = false;
     input1_value = ADC.read(adc_pin1);
     adc_pin1_abnormal_count = testSample(input1_value, adc_pin1_normal_value, adc_pin1_abnormal_count);
@@ -143,6 +148,10 @@ Timer.set(sample_interval_ms, true /* repeat */, function() {
     }
     if (debug) {
       print('Any input is active?', input_active);
+    }
+    // update LED
+    if (input_active) {
+      GPIO.write(led_pin, 1);
     }
     pubMsg(input_active);
 }, null);
