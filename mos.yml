@@ -42,8 +42,11 @@ config_schema:
   - ["app.input_2.normal_value", "i", 0, {title: "Normal value"}]
   - ["app.input_2.label", "s", "Motion Detector", {title: "Input label"}]
   - ["app.input_3.pin", "i", 36, {title: "Analog input pin"}]
-  - ["app.input_3.normal_value", "i", 1770, {title: "Normal value"}]
-  - ["app.input_3.label", "s", "Main Door", {title: "Input label"}]
+  - ["app.input_3.normal_value", "i", 0, {title: "Normal value"}]
+  - ["app.input_3.label", "s", "Main Door Left", {title: "Input label"}]
+  - ["app.input_4.pin", "i", 39, {title: "Analog input pin"}]
+  - ["app.input_4.normal_value", "i", 0, {title: "Normal value"}]
+  - ["app.input_4.label", "s", "Main Door Right", {title: "Input label"}]
 
 # These settings get compiled into the C structure, and can be accessed
 # from the C code this way:

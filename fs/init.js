@@ -19,14 +19,18 @@ let input2_label = Cfg.get('app.input_2.label');
 print('Input 2 label=', input2_label);
 let input3_label = Cfg.get('app.input_3.label');
 print('Input 3 label=', input3_label);
+let input4_label = Cfg.get('app.input_4.label');
+print('Input 4 label=', input4_label);
 
 let adc_pin1 = Cfg.get('app.input_1.pin');
 let adc_pin2 = Cfg.get('app.input_2.pin');
 let adc_pin3 = Cfg.get('app.input_3.pin');
+let adc_pin4 = Cfg.get('app.input_4.pin');
 
 ADC.enable(adc_pin1);
 ADC.enable(adc_pin2);
 ADC.enable(adc_pin3);
+ADC.enable(adc_pin4);
 
 let adc_pin1_normal_value = Cfg.get('app.input_1.normal_value');
 print('Pin', adc_pin1, 'normal value=', adc_pin1_normal_value);
@@ -34,14 +38,18 @@ let adc_pin2_normal_value = Cfg.get('app.input_2.normal_value');
 print('Pin', adc_pin2, 'normal value=', adc_pin2_normal_value);
 let adc_pin3_normal_value = Cfg.get('app.input_3.normal_value');
 print('Pin', adc_pin3, 'normal value=', adc_pin3_normal_value);
+let adc_pin4_normal_value = Cfg.get('app.input_4.normal_value');
+print('Pin', adc_pin4, 'normal value=', adc_pin4_normal_value);
 
 let input1_active = false;
 let input2_active = false;
 let input3_active = false;
+let input4_active = false;
 
 let input1_value = -1;
 let input2_value = -1;
 let input3_value = -1;
+let input4_value = -1;
 
 let device_id = Cfg.get('device.id');
 let mqtt_topic = Cfg.get('app.mqtt_pub_topic')+'/'+device_id;
@@ -62,7 +70,8 @@ let pubMsg = function(input_active) {
       input_location: input_location,
       input_1: {input_label: input1_label, active: input1_active, sample_value: input1_value, normal_value: adc_pin1_normal_value},
       input_2: {input_label: input2_label, active: input2_active, sample_value: input2_value, normal_value: adc_pin2_normal_value},
-      input_3: {input_label: input3_label, active: input3_active, sample_value: input3_value, normal_value: adc_pin3_normal_value}
+      input_3: {input_label: input3_label, active: input3_active, sample_value: input3_value, normal_value: adc_pin3_normal_value},
+      input_4: {input_label: input4_label, active: input4_active, sample_value: input4_value, normal_value: adc_pin4_normal_value}
     });
     let ok = MQTT.pub(mqtt_topic, message, 1);
     if (debug) {
@@ -106,6 +115,7 @@ let input_active = false;
 let adc_pin1_abnormal_count = 0;
 let adc_pin2_abnormal_count = 0;
 let adc_pin3_abnormal_count = 0;
+let adc_pin4_abnormal_count = 0;
 Timer.set(sample_interval_ms, true /* repeat */, function() {
     // disable LED
     GPIO.write(led_pin, 0);
@@ -151,6 +161,20 @@ Timer.set(sample_interval_ms, true /* repeat */, function() {
     }
     if (debug) {
       print('Pin', adc_pin3, 'sampled', input3_value, 'abnormal count', adc_pin3_abnormal_count, 'active?', input3_active);
+    }
+    input4_value = ADC.read(adc_pin4);
+    adc_pin4_abnormal_count = testSample(input4_value, adc_pin4_normal_value, adc_pin4_abnormal_count);
+    if (adc_pin4_abnormal_count > trigger_dedupes) {
+      input4_active = true;
+      input_active = true;
+      // LED
+      GPIO.write(led_pin, 1);
+    }
+    if (adc_pin4_abnormal_count === 0) {
+      input4_active = false;
+    }
+    if (debug) {
+      print('Pin', adc_pin4, 'sampled', input4_value, 'abnormal count', adc_pin4_abnormal_count, 'active?', input4_active);
     }
     if (debug) {
       print('Any input is active?', input_active);
