@@ -35,6 +35,7 @@ config_schema:
   - ["app.trigger_dedupes", "i", 10, {title: "Consecutive active values before trigger sent"}]
   - ["app.active_pub_interval_s", "i", 1, {title: "Publish rate when active"}]
   - ["app.heartbeat_pub_interval_s", "i", 30, {title: "Publish rate when idle"}]
+  # GPIOs 34 to 39 are GPIs – input only pins. These pins don’t have internal pull-up or pull-down resistors.
   - ["app.input_location", "s", "Garage", {title: "Physical device and inputs location"}]
   - ["app.input_1.pin", "i", 34, {title: "Analog input pin"}]
   - ["app.input_1.normal_value", "i", 0, {title: "Normal value"}]

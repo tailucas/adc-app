@@ -37,12 +37,12 @@ if (adc_mode) {
 } else {
   print('GPIO mode enabled; ignoring configured normal values.');
   GPIO.set_mode(input_pin1, GPIO.MODE_INPUT);
-  GPIO.set_pull(input_pin1, GPIO.PULL_UP);
   GPIO.set_mode(input_pin2, GPIO.MODE_INPUT);
-  GPIO.set_pull(input_pin2, GPIO.PULL_UP);
   GPIO.set_mode(input_pin3, GPIO.MODE_INPUT);
-  GPIO.set_pull(input_pin3, GPIO.PULL_UP);
   GPIO.set_mode(input_pin4, GPIO.MODE_INPUT);
+  GPIO.set_pull(input_pin1, GPIO.PULL_UP);
+  GPIO.set_pull(input_pin2, GPIO.PULL_UP);
+  GPIO.set_pull(input_pin3, GPIO.PULL_UP);
   GPIO.set_pull(input_pin4, GPIO.PULL_UP);
 }
 
