@@ -22,24 +22,38 @@ print('Input 3 label=', input3_label);
 let input4_label = Cfg.get('app.input_4.label');
 print('Input 4 label=', input4_label);
 
-let adc_pin1 = Cfg.get('app.input_1.pin');
-let adc_pin2 = Cfg.get('app.input_2.pin');
-let adc_pin3 = Cfg.get('app.input_3.pin');
-let adc_pin4 = Cfg.get('app.input_4.pin');
+let input_pin1 = Cfg.get('app.input_1.pin');
+let input_pin2 = Cfg.get('app.input_2.pin');
+let input_pin3 = Cfg.get('app.input_3.pin');
+let input_pin4 = Cfg.get('app.input_4.pin');
 
-ADC.enable(adc_pin1);
-ADC.enable(adc_pin2);
-ADC.enable(adc_pin3);
-ADC.enable(adc_pin4);
+let adc_mode = Cfg.get('app.adc_mode');
+if (adc_mode) {
+  print('ADC mode enabled; using configured normal values.');
+  ADC.enable(input_pin1);
+  ADC.enable(input_pin2);
+  ADC.enable(input_pin3);
+  ADC.enable(input_pin4);
+} else {
+  print('GPIO mode enabled; ignoring configured normal values.');
+  GPIO.set_mode(input_pin1, GPIO.MODE_INPUT);
+  GPIO.set_pull(input_pin1, GPIO.PULL_UP);
+  GPIO.set_mode(input_pin2, GPIO.MODE_INPUT);
+  GPIO.set_pull(input_pin2, GPIO.PULL_UP);
+  GPIO.set_mode(input_pin3, GPIO.MODE_INPUT);
+  GPIO.set_pull(input_pin3, GPIO.PULL_UP);
+  GPIO.set_mode(input_pin4, GPIO.MODE_INPUT);
+  GPIO.set_pull(input_pin4, GPIO.PULL_UP);
+}
 
-let adc_pin1_normal_value = Cfg.get('app.input_1.normal_value');
-print('Pin', adc_pin1, 'normal value=', adc_pin1_normal_value);
-let adc_pin2_normal_value = Cfg.get('app.input_2.normal_value');
-print('Pin', adc_pin2, 'normal value=', adc_pin2_normal_value);
-let adc_pin3_normal_value = Cfg.get('app.input_3.normal_value');
-print('Pin', adc_pin3, 'normal value=', adc_pin3_normal_value);
-let adc_pin4_normal_value = Cfg.get('app.input_4.normal_value');
-print('Pin', adc_pin4, 'normal value=', adc_pin4_normal_value);
+let input_pin1_normal_value = Cfg.get('app.input_1.normal_value');
+print('Pin', input_pin1, 'normal value=', input_pin1_normal_value);
+let input_pin2_normal_value = Cfg.get('app.input_2.normal_value');
+print('Pin', input_pin2, 'normal value=', input_pin2_normal_value);
+let input_pin3_normal_value = Cfg.get('app.input_3.normal_value');
+print('Pin', input_pin3, 'normal value=', input_pin3_normal_value);
+let input_pin4_normal_value = Cfg.get('app.input_4.normal_value');
+print('Pin', input_pin4, 'normal value=', input_pin4_normal_value);
 
 let input1_active = false;
 let input2_active = false;
@@ -68,10 +82,10 @@ let pubMsg = function(input_active) {
       timestamp: now,
       device_id: device_id,
       input_location: input_location,
-      input_1: {input_label: input1_label, active: input1_active, sample_value: input1_value, normal_value: adc_pin1_normal_value},
-      input_2: {input_label: input2_label, active: input2_active, sample_value: input2_value, normal_value: adc_pin2_normal_value},
-      input_3: {input_label: input3_label, active: input3_active, sample_value: input3_value, normal_value: adc_pin3_normal_value},
-      input_4: {input_label: input4_label, active: input4_active, sample_value: input4_value, normal_value: adc_pin4_normal_value}
+      input_1: {input_label: input1_label, active: input1_active, sample_value: input1_value, normal_value: input_pin1_normal_value},
+      input_2: {input_label: input2_label, active: input2_active, sample_value: input2_value, normal_value: input_pin2_normal_value},
+      input_3: {input_label: input3_label, active: input3_active, sample_value: input3_value, normal_value: input_pin3_normal_value},
+      input_4: {input_label: input4_label, active: input4_active, sample_value: input4_value, normal_value: input_pin4_normal_value}
     });
     let ok = MQTT.pub(mqtt_topic, message, 1);
     if (debug) {
@@ -90,10 +104,18 @@ let sample_value_tolerance = sample_value_max / Cfg.get('app.normal_value_tolera
 print('Normal value tolerance=', sample_value_tolerance);
 let sample_normal = false;
 let testSample = function(sample_value, normal_value, trigger_count) {
-  if (sample_value < normal_value - sample_value_tolerance || sample_value > normal_value + sample_value_tolerance) {
-    sample_normal = false;
+  if (adc_mode) {
+    if (sample_value < normal_value - sample_value_tolerance || sample_value > normal_value + sample_value_tolerance) {
+      sample_normal = false;
+    } else {
+      sample_normal = true;
+    }
   } else {
-    sample_normal = true;
+    if (sample_value == 1) {
+      sample_normal = false;
+    } else {
+      sample_normal = true;
+    }
   }
   if (sample_normal) {
     trigger_count = 0;
@@ -112,69 +134,85 @@ let trigger_dedupes = Cfg.get('app.trigger_dedupes');
 print('Trigger dedupes=', trigger_dedupes);
 
 let input_active = false;
-let adc_pin1_abnormal_count = 0;
-let adc_pin2_abnormal_count = 0;
-let adc_pin3_abnormal_count = 0;
-let adc_pin4_abnormal_count = 0;
+let input_pin1_abnormal_count = 0;
+let input_pin2_abnormal_count = 0;
+let input_pin3_abnormal_count = 0;
+let input_pin4_abnormal_count = 0;
 Timer.set(sample_interval_ms, true /* repeat */, function() {
     // disable LED
     GPIO.write(led_pin, 0);
     input_active = false;
-    input1_value = ADC.read(adc_pin1);
-    adc_pin1_abnormal_count = testSample(input1_value, adc_pin1_normal_value, adc_pin1_abnormal_count);
-    if (adc_pin1_abnormal_count > trigger_dedupes) {
+    if (adc_mode) {
+      input1_value = ADC.read(input_pin1);
+    } else {
+      input1_value = GPIO.read(input_pin1);
+    }
+    input_pin1_abnormal_count = testSample(input1_value, input_pin1_normal_value, input_pin1_abnormal_count);
+    if (input_pin1_abnormal_count > trigger_dedupes) {
       input1_active = true;
       input_active = true;
       // LED
       GPIO.write(led_pin, 1);
     }
-    if (adc_pin1_abnormal_count === 0) {
+    if (input_pin1_abnormal_count === 0) {
       input1_active = false;
     }
     if (debug) {
-      print('Pin', adc_pin1, 'sampled', input1_value, 'abnormal count', adc_pin1_abnormal_count, 'active?', input1_active);
+      print('Pin', input_pin1, 'sampled', input1_value, 'abnormal count', input_pin1_abnormal_count, 'active?', input1_active);
     }
-    input2_value = ADC.read(adc_pin2);
-    adc_pin2_abnormal_count = testSample(input2_value, adc_pin2_normal_value, adc_pin2_abnormal_count);
-    if (adc_pin2_abnormal_count > trigger_dedupes) {
+    if (adc_mode) {
+      input2_value = ADC.read(input_pin2);
+    } else {
+      input2_value = GPIO.read(input_pin2);
+    }
+    input_pin2_abnormal_count = testSample(input2_value, input_pin2_normal_value, input_pin2_abnormal_count);
+    if (input_pin2_abnormal_count > trigger_dedupes) {
       input2_active = true;
       input_active = true;
       // LED
       GPIO.write(led_pin, 1);
     }
-    if (adc_pin2_abnormal_count === 0) {
+    if (input_pin2_abnormal_count === 0) {
       input2_active = false;
     }
     if (debug) {
-      print('Pin', adc_pin2, 'sampled', input2_value, 'abnormal count', adc_pin2_abnormal_count, 'active?', input2_active);
+      print('Pin', input_pin2, 'sampled', input2_value, 'abnormal count', input_pin2_abnormal_count, 'active?', input2_active);
     }
-    input3_value = ADC.read(adc_pin3);
-    adc_pin3_abnormal_count = testSample(input3_value, adc_pin3_normal_value, adc_pin3_abnormal_count);
-    if (adc_pin3_abnormal_count > trigger_dedupes) {
+    if (adc_mode) {
+      input3_value = ADC.read(input_pin3);
+    } else {
+      input3_value = GPIO.read(input_pin3);
+    }
+    input_pin3_abnormal_count = testSample(input3_value, input_pin3_normal_value, input_pin3_abnormal_count);
+    if (input_pin3_abnormal_count > trigger_dedupes) {
       input3_active = true;
       input_active = true;
       // LED
       GPIO.write(led_pin, 1);
     }
-    if (adc_pin3_abnormal_count === 0) {
+    if (input_pin3_abnormal_count === 0) {
       input3_active = false;
     }
     if (debug) {
-      print('Pin', adc_pin3, 'sampled', input3_value, 'abnormal count', adc_pin3_abnormal_count, 'active?', input3_active);
+      print('Pin', input_pin3, 'sampled', input3_value, 'abnormal count', input_pin3_abnormal_count, 'active?', input3_active);
     }
-    input4_value = ADC.read(adc_pin4);
-    adc_pin4_abnormal_count = testSample(input4_value, adc_pin4_normal_value, adc_pin4_abnormal_count);
-    if (adc_pin4_abnormal_count > trigger_dedupes) {
+    if (adc_mode) {
+      input4_value = ADC.read(input_pin4);
+    } else {
+      input4_value = GPIO.read(input_pin4);
+    }
+    input_pin4_abnormal_count = testSample(input4_value, input_pin4_normal_value, input_pin4_abnormal_count);
+    if (input_pin4_abnormal_count > trigger_dedupes) {
       input4_active = true;
       input_active = true;
       // LED
       GPIO.write(led_pin, 1);
     }
-    if (adc_pin4_abnormal_count === 0) {
+    if (input_pin4_abnormal_count === 0) {
       input4_active = false;
     }
     if (debug) {
-      print('Pin', adc_pin4, 'sampled', input4_value, 'abnormal count', adc_pin4_abnormal_count, 'active?', input4_active);
+      print('Pin', input_pin4, 'sampled', input4_value, 'abnormal count', input_pin4_abnormal_count, 'active?', input4_active);
     }
     if (debug) {
       print('Any input is active?', input_active);
