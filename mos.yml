@@ -29,7 +29,7 @@ config_schema:
   #- ["i2c.enable", true]
   - ["app.mqtt_pub_topic", "s", "sensor/garage", {title: "MQTT topic for updates"}]
   - ["app.debug", "b", false, {title: "Debug mode with additional console output"}]
-  - ["app.adc_mode", "b", false, {title: "Sample inputs using ADC rather than GPIO"}]
+  - ["app.adc_mode", "b", true, {title: "Sample inputs using ADC rather than GPIO"}]
   - ["app.sample_interval_ms", "i", 100, {title: "Sample rate"}]
   - ["app.normal_value_tolerance_percent", "i", 10, {title: "Tolerance for sample value to be normal"}]
   - ["app.trigger_dedupes", "i", 10, {title: "Consecutive active values before trigger sent"}]
