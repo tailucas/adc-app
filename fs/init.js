@@ -66,11 +66,24 @@ let input3_value = -1;
 let input4_value = -1;
 
 let device_id = Cfg.get('device.id');
-let mqtt_topic = Cfg.get('app.mqtt_pub_topic')+'/'+device_id;
+let mqtt_topic = Cfg.get('app.mqtt_topic');
+let mqtt_pub_topic = mqtt_topic+'/'+Cfg.get('app.mqtt_pub_topic')+'/'+device_id;
+let mqtt_heartbeat_topic = mqtt_topic+'/heartbeat/'+device_id;
 let active_pub_interval_s = Cfg.get('app.active_pub_interval_s');
 print('Publication interval=', active_pub_interval_s, 's');
 let input_location = Cfg.get('app.input_location');
 print('Physical device location=', input_location);
+
+let sendMsg = function(topic, message) {
+  let ok = MQTT.pub(topic, message, 1);
+  if (debug) {
+    if (!ok) {
+      print('ERROR', topic, '<-', message);
+    } else {
+      print(topic, '<-', message);
+    }
+  }
+};
 
 let now = Timer.now();
 let last_posted = now;
@@ -87,14 +100,9 @@ let pubMsg = function(input_active) {
       input_3: {input_label: input3_label, active: input3_active, sample_value: input3_value, normal_value: input_pin3_normal_value},
       input_4: {input_label: input4_label, active: input4_active, sample_value: input4_value, normal_value: input_pin4_normal_value}
     });
-    let ok = MQTT.pub(mqtt_topic, message, 1);
-    if (debug) {
-      if (!ok) {
-        print('ERROR', mqtt_topic, '<-', message);
-      } else {
-        print(mqtt_topic, '<-', message);
-      }
-    }
+    sendMsg(mqtt_pub_topic, message);
+    // send heartbeat for uptime check
+    sendMsg(mqtt_heartbeat_topic, 'OK');
     last_posted = now;
   }
 };
