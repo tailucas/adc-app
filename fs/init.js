@@ -66,9 +66,8 @@ let input3_value = -1;
 let input4_value = -1;
 
 let device_id = Cfg.get('device.id');
-let mqtt_topic = Cfg.get('app.mqtt_topic');
-let mqtt_pub_topic = mqtt_topic+'/'+Cfg.get('app.mqtt_pub_topic')+'/'+device_id;
-let mqtt_heartbeat_topic = mqtt_topic+'/heartbeat/'+device_id;
+let mqtt_pub_topic = Cfg.get('app.mqtt_pub_topic')+'/'+device_id;
+let mqtt_heartbeat_topic = 'sensor/heartbeat/'+device_id;
 let active_pub_interval_s = Cfg.get('app.active_pub_interval_s');
 print('Publication interval=', active_pub_interval_s, 's');
 let input_location = Cfg.get('app.input_location');
